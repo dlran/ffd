@@ -42,11 +42,20 @@ class Downloader:
         self.blocksize = 524288
         self.filename = output or os.path.basename(self.url)
         self.threads = threads or multiprocessing.cpu_count() * 5
+        self.total = 0
+        self.run()
+        # self.tellSet = set()
+
+    def checkFileExist(self, filePth):
+        if os.path.exists(filePth) and os.path.getsize(filePth) > 0:
+            print(filePth + ' already exists')
+            return True
+        return False
+
+    def headCtnLen(self):
         r = request.urlopen(self.request(method='HEAD'))
         self.total = int(r.getheader(name='Content-Length'))
         print('Length: %s (%s)' % (self.total, humanSize(self.total)))
-        self.run()
-        # self.tellSet = set()
 
     def request(self, method, header={}):
         return request.Request(
@@ -85,6 +94,9 @@ class Downloader:
             return self.download(start, end)
 
     def run(self):
+        if self.checkFileExist(self.filename):
+            return
+        self.headCtnLen()
         self.fs = open(self.filename, "wb")
 
         with ThreadPoolExecutor(self.threads) as executor:

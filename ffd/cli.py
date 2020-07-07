@@ -20,7 +20,7 @@ def main():
     if os.path.splitext(args.url)[-1] == '.m3u8':
         hls(url=args.url, dest=args.dest, threads=args.threads)
     else:
-        download(url=args.url, threads=args.threads, filename=args.output)
+        download(url=args.url, threads=args.threads, output=args.output)
 
 if __name__ == '__main__':
     main()
