@@ -36,15 +36,22 @@ class Progressbar:
 
 
 class Downloader:
-    def __init__(self, url, threads=None, output=None):
+    def __init__(self, url, threads=None, output=None, dest=None):
         self.g_spent_start = time.time()
         self.url = url
         self.blocksize = 524288
         self.filename = output or os.path.basename(self.url)
+        self.dest = os.path.abspath(dest) or os.getcwd()
+        self.filePath = os.path.join(self.dest, self.filename)
         self.threads = threads or multiprocessing.cpu_count() * 5
         self.total = 0
         self.run()
         # self.tellSet = set()
+
+    def checkDestExit(self, dest):
+        if not os.path.exists(dest):
+            os.mkdir(dest)
+            print('created ' + dest)
 
     def checkFileExist(self, filePth):
         if os.path.exists(filePth) and os.path.getsize(filePth) > 0:
@@ -94,10 +101,11 @@ class Downloader:
             return self.download(start, end)
 
     def run(self):
-        if self.checkFileExist(self.filename):
+        self.checkDestExit(self.dest)
+        if self.checkFileExist(self.filePath):
             return
         self.headCtnLen()
-        self.fs = open(self.filename, "wb")
+        self.fs = open(self.filePath, "wb")
 
         with ThreadPoolExecutor(self.threads) as executor:
             pb = Progressbar(total=self.total)
@@ -117,7 +125,7 @@ class Downloader:
             m, s = divmod(int(time.time() - self.g_spent_start), 60)
             print()
             # print('get block %s' % len(self.tellSet))
-            print('(%sm%ss) %s Saved' % (m, s, self.filename))
+            print('(%sm%ss) %s Saved' % (m, s, self.filePath))
 
         self.fs.close()
 
