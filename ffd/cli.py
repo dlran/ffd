@@ -2,6 +2,7 @@ import sys
 import os
 import argparse
 from .__init__ import download, hls
+from .__version__ import __version__
 
 def main():
     parser = argparse.ArgumentParser(description = 'oo', usage=".py [options...] [args] url")
@@ -9,7 +10,7 @@ def main():
     parser.add_argument('-t', '--threads', type=int, help='max workers threads')
     parser.add_argument('-d', '--dest', type=str, help='output cache destination')
     parser.add_argument('-o', '--output', type=str, help='output file name')
-    parser.add_argument('-v', '--version', action='version', version='0.0.1')
+    parser.add_argument('-v', '--version', action='version', version=__version__)
     argv = sys.argv
     args = parser.parse_args()
     if len(argv) == 1:

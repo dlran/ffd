@@ -36,11 +36,11 @@ class Progressbar:
 
 
 class Downloader:
-    def __init__(self, url, threads=None, filename=None):
+    def __init__(self, url, threads=None, output=None):
         self.g_spent_start = time.time()
         self.url = url
         self.blocksize = 524288
-        self.filename = filename or os.path.basename(self.url)
+        self.filename = output or os.path.basename(self.url)
         self.threads = threads or multiprocessing.cpu_count() * 5
         r = request.urlopen(self.request(method='HEAD'))
         self.total = int(r.getheader(name='Content-Length'))

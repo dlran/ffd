@@ -1,10 +1,11 @@
 # coding: utf-8
-
+from ffd.__version__ import __version__
 import setuptools
+
 
 setuptools.setup(
   name='ffd',
-  version='0.0.2',
+  version=__version__,
   author='dlr',
   author_email='dlr@yy.com',
   description=u'Fast downloader',
