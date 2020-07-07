@@ -41,7 +41,7 @@ class Downloader:
         self.url = url
         self.blocksize = 524288
         self.filename = output or os.path.basename(self.url)
-        self.dest = os.path.abspath(dest) or os.getcwd()
+        self.dest = dest and os.path.abspath(dest) or os.getcwd()
         self.filePath = os.path.join(self.dest, self.filename)
         self.threads = threads or multiprocessing.cpu_count() * 5
         self.total = 0
