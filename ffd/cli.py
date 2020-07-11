@@ -11,6 +11,7 @@ def main():
     parser.add_argument('-d', '--dest', type=str, help='output cache destination')
     parser.add_argument('-o', '--output', type=str, help='output file name')
     parser.add_argument('-v', '--version', action='version', version=__version__)
+    parser.add_argument('-f', '--force', action='store_true', help="force override")
     argv = sys.argv
     args = parser.parse_args()
     if len(argv) == 1:
@@ -20,7 +21,7 @@ def main():
     if os.path.splitext(args.url)[-1] == '.m3u8':
         hls(url=args.url, dest=args.dest, threads=args.threads)
     else:
-        download(url=args.url, threads=args.threads, output=args.output, dest=args.dest)
+        download(url=args.url, threads=args.threads, output=args.output, dest=args.dest, force=args.force)
 
 if __name__ == '__main__':
     main()

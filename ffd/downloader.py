@@ -36,7 +36,7 @@ class Progressbar:
 
 
 class Downloader:
-    def __init__(self, url, threads=None, output=None, dest=None):
+    def __init__(self, url, threads=None, output=None, dest=None, force=False):
         self.g_spent_start = time.time()
         self.url = url
         self.blocksize = 524288
@@ -45,6 +45,7 @@ class Downloader:
         self.filePath = os.path.join(self.dest, self.filename)
         self.threads = threads or multiprocessing.cpu_count() * 5
         self.total = 0
+        self.force = force
         self.run()
         # self.tellSet = set()
 
@@ -54,7 +55,7 @@ class Downloader:
             print('created ' + dest)
 
     def checkFileExist(self, filePth):
-        if os.path.exists(filePth) and os.path.getsize(filePth) > 0:
+        if os.path.exists(filePth) and os.path.getsize(filePth) > 0 and not self.force:
             print(filePth + ' already exists')
             return True
         return False
