@@ -61,13 +61,13 @@ class Downloader:
         return False
 
     def headCtnLen(self):
-        r = request.urlopen(self.request(method='HEAD'))
+        r = request.urlopen(self.request(url=self.url, method='HEAD'))
         self.total = int(r.getheader(name='Content-Length'))
         print('Length: %s (%s)' % (self.total, humanSize(self.total)))
 
-    def request(self, method, header={}):
+    def request(self, url, method, header={}):
         return request.Request(
-            url = self.url,
+            url = url,
             headers = {'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36', **header},
             method = method)
 
@@ -86,7 +86,7 @@ class Downloader:
             # [0-1023] = start 0 len 1024 bytes
             st = time.time()
             header = {'Range': 'Bytes=%s-%s' % (start, end), 'Accept-Encoding': '*'}
-            with request.urlopen(self.request(method='GET', header=header), timeout=5) as res:
+            with request.urlopen(self.request(url=self.url, method='GET', header=header), timeout=5) as res:
                 # print("%s-%s download success" % (start,end))
                 # print('%.2fKB/s' % (self.blocksize / 1024 / (time.time() - st)))
                 spent_time = time.time() - st
