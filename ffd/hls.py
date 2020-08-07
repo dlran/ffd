@@ -7,6 +7,7 @@ import socket
 import struct
 import time
 import os
+from urllib.parse import urlparse
 from urllib import request
 import ssl
 import multiprocessing
@@ -14,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 def downTs(url, outDir):
-    filePth = os.path.join(outDir, os.path.basename(url))
+    filePth = os.path.join(outDir, os.path.basename(urlparse(url).path))
 
     if os.path.exists(filePth) and os.path.getsize(filePth) > 0:
         print('already exists %s' % os.path.basename(url))
@@ -73,7 +74,7 @@ def m3u8open(url, cachePth):
                 with open(os.path.join(cachePth, key[0]), 'w') as f:
                     f.write(keyres.read().decode("UTF-8"))
 
-            tsls = re.findall(r'.+\.ts', content)
+            tsls = re.findall(r'.+\.ts.*', content)
             if not tsls:
                 print('ts not found')
                 sys.exit(1)
