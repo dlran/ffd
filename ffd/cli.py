@@ -1,5 +1,6 @@
 import sys
 import os
+from urllib.parse import urlparse
 import argparse
 from .__init__ import download, hls
 from .__version__ import __version__
@@ -18,7 +19,7 @@ def main():
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-    if os.path.splitext(args.url)[-1] == '.m3u8':
+    if os.path.splitext(urlparse(args.url).path)[-1] == '.m3u8':
         hls(url=args.url, dest=args.dest, threads=args.threads)
     else:
         download(url=args.url, threads=args.threads, output=args.output, dest=args.dest, force=args.force)
