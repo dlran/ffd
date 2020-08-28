@@ -52,7 +52,7 @@ def m3u8open(url, cachePth):
 
     def loadM3U8(url):
         print('loading ' + url)
-        r = request.urlopen(__request(url))
+        r = request.urlopen(__request(url), timeout=5)
         content = r.read().decode("UTF-8")
         streaminf = re.findall(r'#EXT-X-STREAM-INF:.+\n(.+?m3u8)', content)
         if streaminf:
@@ -70,8 +70,8 @@ def m3u8open(url, cachePth):
             if key:
                 keyUrl = request.urljoin(url, key[0])
                 print('downloading ' + keyUrl)
-                keyres = request.urlopen(__request(keyUrl))
-                with open(os.path.join(cachePth, key[0]), 'w') as f:
+                keyres = request.urlopen(__request(keyUrl), timeout=5)
+                with open(os.path.join(cachePth, os.path.basename(urlparse(key[0]).path)), 'w') as f:
                     f.write(keyres.read().decode("UTF-8"))
 
             tsls = re.findall(r'.+\.ts.*', content)

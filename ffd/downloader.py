@@ -17,7 +17,7 @@ def humanSize(num, suffix='B'):
 
 class Progressbar:
     def __init__(self, total):
-        self.terminalWidth = os.get_terminal_size().columns
+        self.terminalWidth = 80 # os.get_terminal_size().columns
         self.spinner = "|/-\\";
         self.total = total
         self.width = self.terminalWidth - len(str(self.total)) - 25
@@ -92,7 +92,8 @@ class Downloader:
                 spent_time = time.time() - st
                 return start, res.read(), spent_time
         except Exception as e:
-            print(' ' * os.get_terminal_size().columns, end='\r')
+            # os.get_terminal_size().columns
+            print(' ' * 80, end='\r')
             if isinstance(e, ssl.SSLError):
                 print('SSL Error', end=' ')
             elif isinstance(e, IOError):
