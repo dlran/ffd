@@ -48,33 +48,70 @@ def __request(url, method='GET', header={}):
             **header},
         method = method)
 
-def m3u8open(url, cachePth):
+def m3u8open(url, cachePth, force):
 
-    def loadM3U8(url):
-        print('loading ' + url)
-        r = request.urlopen(__request(url), timeout=5)
-        content = r.read().decode("UTF-8")
-        streaminf = re.findall(r'#EXT-X-STREAM-INF:.+\n(.+?m3u8)', content)
+    def loadM3U8(url, force=False, isStmInf=True):
+        print('opening ' + url)
+        stmInfPath = os.path.join(cachePth, 'index.stream.m3u8')
+        orgInfPath = os.path.join(cachePth, 'index.original.m3u8')
+        if not force and isStmInf and os.path.exists(stmInfPath) and os.path.getsize(stmInfPath) > 0:
+            infIsExists = True
+            with open(stmInfPath, 'r') as f:
+                content = f.read()
+            print('already exists index.stream.m3u8')
+        elif not force and os.path.exists(orgInfPath) and os.path.getsize(orgInfPath) > 0:
+            infIsExists = True
+            if isStmInf:
+                # if doesn't stream file but exists original.m3u8
+                print('not exists index.stream.m3u8')
+            isStmInf = False
+            with open(orgInfPath, 'r') as f:
+                content = f.read()
+            print('already exists index.original.m3u8')
+        else:
+            infIsExists = False
+            r = request.urlopen(__request(url), timeout=5)
+            content = r.read().decode('UTF-8')
+            print('downloaded ' + url)
+        streaminf = re.findall(r'#EXT-X-STREAM-INF:.+\n(.+?8?)\n', content)
+        # Correct status if not stream inf
+        isStmInf = bool(streaminf)
+
+        if not os.path.exists(cachePth):
+            os.mkdir(cachePth)
+        if not infIsExists:
+            with open(stmInfPath if isStmInf else orgInfPath, 'w') as f:
+                f.write(content)
+
         if streaminf:
             # Take the last one 
             inf_url = request.urljoin(url, streaminf[-1])
-            return loadM3U8(inf_url)
+            return loadM3U8(inf_url, force, False)
         else:
-            if not os.path.exists(cachePth):
-                os.mkdir(cachePth)
+            # Find and replace key
+            def keyMap(match):
+                keyPath = os.path.join(cachePth, 'key.key')
+                keyUrl = request.urljoin(url, match.group(2))
+                if not os.path.exists(keyPath) or os.path.getsize(keyPath) == 0:
+                    keyres = request.urlopen(__request(keyUrl), timeout=5)
+                    with open(keyPath, 'wb') as f:
+                        f.write(keyres.read())
+                    print('downloaded ' + keyUrl)
+                else:
+                    print('already exists key.key')
+                return match.group(1) + 'key.key"'
+
+            content = re.sub(r'(#EXT-X-KEY.*URI=")(.+?\.key)"', keyMap, content)
+
+            # Find and replace ts
+            tsls = []
+            def tsMap(match):
+                _path = match.group(2)
+                tsls.append(_path)
+                return match.group(1) + os.path.basename(urlparse(_path).path) + '\n'
+            content = re.sub(r'(#EXTINF:.+?\n)(.+)\n', tsMap, content)
             with open(os.path.join(cachePth, 'index.m3u8'), 'w') as f:
                 f.write(content)
-
-            # Download key
-            key = re.findall(r'#EXT-X-KEY.*URI="(.+?\.key)"', content)
-            if key:
-                keyUrl = request.urljoin(url, key[0])
-                print('downloading ' + keyUrl)
-                keyres = request.urlopen(__request(keyUrl), timeout=5)
-                with open(os.path.join(cachePth, os.path.basename(urlparse(key[0]).path)), 'w') as f:
-                    f.write(keyres.read().decode("UTF-8"))
-
-            tsls = re.findall(r'.+\.ts.*', content)
             if not tsls:
                 print('ts not found')
                 sys.exit(1)
@@ -82,14 +119,14 @@ def m3u8open(url, cachePth):
             else:
                 return [request.urljoin(url, t) for t in tsls]
 
-    return loadM3U8(url)
+    return loadM3U8(url, force)
 
-def hlscache(url, dest=None, threads=None, pack=False):
+def hlscache(url, dest=None, threads=None, force=False, pack=False):
     g_spent_start = time.time()
     status = 1
     threads = threads or multiprocessing.cpu_count() * 5
     cachePth = (dest and os.path.abspath(dest)) or os.path.join(os.getcwd(), 'cache')
-    segmentList = m3u8open(url, cachePth)
+    segmentList = m3u8open(url, cachePth, force)
     with ThreadPoolExecutor(threads) as executor:
         tasks = [executor.submit(downTs, p, cachePth) for p in segmentList]
         for future in as_completed(tasks):
