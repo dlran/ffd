@@ -14,8 +14,19 @@ import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
+def getTsBsn(url):
+    '''
+    If ts basename all are the same, splice the previous dir
+    '''
+    urlbs = os.path.basename(urlparse(url).path)
+    if len(urlbs) == 1:
+        _p = urlparse(url).path.rsplit('/', 2)
+        return _p[-2] + '_' + _p[-1]
+    else:
+        return urlbs
+
 def downTs(url, outDir):
-    filePth = os.path.join(outDir, os.path.basename(urlparse(url).path))
+    filePth = os.path.join(outDir, getTsBsn(url))
 
     if os.path.exists(filePth) and os.path.getsize(filePth) > 0:
         print('already exists %s' % os.path.basename(url))
@@ -108,7 +119,7 @@ def m3u8open(url, cachePth, force):
             def tsMap(match):
                 _path = match.group(2)
                 tsls.append(_path)
-                return match.group(1) + os.path.basename(urlparse(_path).path) + '\n'
+                return match.group(1) + getTsBsn(_path) + '\n'
             content = re.sub(r'(#EXTINF:.+?\n)(.+)\n', tsMap, content)
             with open(os.path.join(cachePth, 'index.m3u8'), 'w') as f:
                 f.write(content)
