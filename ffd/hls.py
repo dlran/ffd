@@ -31,7 +31,6 @@ def downTs(url, outDir):
     if os.path.exists(filePth) and os.path.getsize(filePth) > 0:
         print('already exists %s' % os.path.basename(url))
     else:
-        ssl._create_default_https_context = ssl._create_unverified_context
         try:
             tsBinary = request.urlopen(__request(url), timeout=5)
             with open(filePth, 'wb') as f:
@@ -117,10 +116,10 @@ def m3u8open(url, cachePth, force):
             # Find and replace ts
             tsls = []
             def tsMap(match):
-                _path = match.group(2)
+                _path = match.group(3)
                 tsls.append(_path)
                 return match.group(1) + getTsBsn(_path) + '\n'
-            content = re.sub(r'(#EXTINF:.+?\n)(.+)\n', tsMap, content)
+            content = re.sub(r'(#EXTINF:.+?\n)(#EXT-X-PRIVINF:.+\n)?(.+)\n', tsMap, content)
             with open(os.path.join(cachePth, 'index.m3u8'), 'w') as f:
                 f.write(content)
             if not tsls:
@@ -137,6 +136,7 @@ def hlscache(url, dest=None, threads=None, force=False, pack=False):
     status = 1
     threads = threads or multiprocessing.cpu_count() * 5
     cachePth = (dest and os.path.abspath(dest)) or os.path.join(os.getcwd(), 'cache')
+    ssl._create_default_https_context = ssl._create_unverified_context
     segmentList = m3u8open(url, cachePth, force)
     with ThreadPoolExecutor(threads) as executor:
         tasks = [executor.submit(downTs, p, cachePth) for p in segmentList]
