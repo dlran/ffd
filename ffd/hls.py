@@ -83,7 +83,7 @@ def m3u8open(url, cachePth, force):
             r = request.urlopen(__request(url), timeout=5)
             content = r.read().decode('UTF-8')
             print('downloaded ' + url)
-        streaminf = re.findall(r'#EXT-X-STREAM-INF:.+\n(.+?8?)\n', content)
+        streaminf = re.findall(r'#EXT-X-STREAM-INF:.+\n(.+?)\n?$', content)
         # Correct status if not stream inf
         isStmInf = bool(streaminf)
 
