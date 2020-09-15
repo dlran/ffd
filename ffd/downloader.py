@@ -61,8 +61,13 @@ class Downloader:
         return False
 
     def headCtnLen(self):
-        r = request.urlopen(self.request(url=self.url, method='HEAD'))
-        self.total = int(r.getheader(name='Content-Length'))
+        try:
+            with request.urlopen(self.request(url=self.url, method='HEAD'), timeout=5) as r:
+                self.total = int(r.getheader(name='Content-Length'))
+        except Exception:
+            print('[warning] Not allow method HEAD, try get')
+            with request.urlopen(self.request(url=self.url, method='GET', header={'Range': 'bytes=0-'}), timeout=5) as r:
+                self.total = int(r.getheader(name='Content-Length'))
         print('Length: %s (%s)' % (self.total, humanSize(self.total)))
 
     def request(self, url, method, header={}):
@@ -85,7 +90,7 @@ class Downloader:
         try:
             # [0-1023] = start 0 len 1024 bytes
             st = time.time()
-            header = {'Range': 'Bytes=%s-%s' % (start, end), 'Accept-Encoding': '*'}
+            header = {'Range': 'bytes=%s-%s' % (start, end), 'Accept-Encoding': '*'}
             with request.urlopen(self.request(url=self.url, method='GET', header=header), timeout=5) as res:
                 # print("%s-%s download success" % (start,end))
                 # print('%.2fKB/s' % (self.blocksize / 1024 / (time.time() - st)))
