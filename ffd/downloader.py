@@ -1,6 +1,6 @@
 import os
 import sys
-from urllib import request
+from urllib import request, parse
 import ssl
 import math
 import time
@@ -40,7 +40,7 @@ class Downloader:
         self.g_spent_start = time.time()
         self.url = url
         self.blocksize = 524288
-        self.filename = output or os.path.basename(self.url)
+        self.filename = output or os.path.basename(parse.urlparse(self.url).path)
         self.dest = dest and os.path.abspath(dest) or os.getcwd()
         self.filePath = os.path.join(self.dest, self.filename)
         self.threads = threads or multiprocessing.cpu_count() * 5
