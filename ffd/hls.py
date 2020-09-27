@@ -59,7 +59,6 @@ def __request(url, method='GET', header={}):
         method = method)
 
 def m3u8open(url, cachePth, force):
-
     def loadM3U8(url, force=False, isStmInf=True):
         print('opening ' + url)
         stmInfPath = os.path.join(cachePth, 'index.stream.m3u8')
@@ -131,13 +130,16 @@ def m3u8open(url, cachePth, force):
 
     return loadM3U8(url, force)
 
-def hlscache(url, dest=None, threads=None, force=False, pack=False):
+def hlscache(url, dest=None, threads=None, force=False, inf_only=False, pack=False):
     g_spent_start = time.time()
     status = 1
     threads = threads or multiprocessing.cpu_count() * 5
     cachePth = (dest and os.path.abspath(dest)) or os.path.join(os.getcwd(), 'cache')
     ssl._create_default_https_context = ssl._create_unverified_context
     segmentList = m3u8open(url, cachePth, force)
+    if inf_only:
+        print('%s Index file saved' % cachePth)
+        return
     with ThreadPoolExecutor(threads) as executor:
         tasks = [executor.submit(downTs, p, cachePth) for p in segmentList]
         for future in as_completed(tasks):
