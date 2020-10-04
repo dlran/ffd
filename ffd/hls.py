@@ -94,7 +94,9 @@ def m3u8open(url, cachePth, force):
 
         if streaminf:
             # Take the last one 
-            inf_url = request.urljoin(url, streaminf[-1])
+            # replace backslash in path
+            stream_path = streaminf[-1].replace('\\', '/')
+            inf_url = request.urljoin(url, stream_path)
             return loadM3U8(inf_url, force, False)
         else:
             # Find and replace key
