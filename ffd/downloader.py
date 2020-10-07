@@ -108,6 +108,7 @@ class Downloader:
             return self.download(start, end)
 
     def run(self):
+        ssl._create_default_https_context = ssl._create_unverified_context
         self.checkDestExit(self.dest)
         if self.checkFileExist(self.filePath):
             return
