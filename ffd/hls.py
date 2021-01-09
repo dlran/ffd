@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def getTsBsn(url):
     '''
-    If ts basename all are the same, splice the previous dir
+    If ts basename length == 1 and all are the same, splice the previous dir
     '''
     urlbs = os.path.basename(urlparse(url).path)
     if len(urlbs) == 1:
@@ -25,25 +25,25 @@ def getTsBsn(url):
     else:
         return urlbs
 
-def downTs(url, outDir):
-    filePth = os.path.join(outDir, getTsBsn(url))
+def downTs(segment, outDir):
+    filePth = os.path.join(outDir, segment['bsn'])
 
     if os.path.exists(filePth) and os.path.getsize(filePth) > 0:
-        print('already exists %s' % os.path.basename(url))
+        print('already exists %s' % segment['bsn'])
     else:
         try:
-            tsBinary = request.urlopen(__request(url), timeout=5)
+            tsBinary = request.urlopen(__request(segment['url']), timeout=5)
             with open(filePth, 'wb') as f:
                 f.write(tsBinary.read())
-                print('downloaded %s' % url)
+                print('downloaded %s' % segment['url'])
         except Exception as e:
-            print('retry ' + url)
+            print('retry ' + segment['url'])
             if isinstance(e, socket.timeout):
                 print('scoket timeout', end=' ')
             elif isinstance(e, IOError):
                 print('IO Error', end=' ')
             print(e)
-            return downTs(url, outDir)
+            return downTs(segment, outDir)
 
     return True
 
@@ -115,11 +115,17 @@ def m3u8open(url, cachePth, force):
             content = re.sub(r'(#EXT-X-KEY.*URI=")(.+?\.key)"', keyMap, content)
 
             # Find and replace ts
+            chkTslsBsn = []
             tsls = []
             def tsMap(match):
                 _path = match.group(3)
-                tsls.append(_path)
-                return match.group(1) + getTsBsn(_path) + '\n'
+                _bsname = getTsBsn(_path)
+                # Already exists same basename
+                if _bsname in chkTslsBsn:
+                    _bsname = str(len(chkTslsBsn))
+                chkTslsBsn.append(_bsname)
+                tsls.append({'url': request.urljoin(url, _path), 'bsn': _bsname})
+                return match.group(1) + _bsname + '\n'
             content = re.sub(r'(#EXTINF:.+?\n)(#EXT-X-PRIVINF:.+\n)?(.+)\n', tsMap, content)
             with open(os.path.join(cachePth, 'index.m3u8'), 'w') as f:
                 f.write(content)
@@ -128,7 +134,7 @@ def m3u8open(url, cachePth, force):
                 sys.exit(1)
                 return []
             else:
-                return [request.urljoin(url, t) for t in tsls]
+                return tsls
 
     return loadM3U8(url, force)
 
