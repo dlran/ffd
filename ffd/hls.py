@@ -122,7 +122,7 @@ def m3u8open(url, cachePth, force):
                 _bsname = getTsBsn(_path)
                 # Already exists same basename
                 if _bsname in chkTslsBsn:
-                    _bsname = str(len(chkTslsBsn))
+                    _bsname = str(len(chkTslsBsn)) + '.ts'
                 chkTslsBsn.append(_bsname)
                 tsls.append({'url': request.urljoin(url, _path), 'bsn': _bsname})
                 return match.group(1) + _bsname + '\n'
