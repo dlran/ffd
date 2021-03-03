@@ -112,7 +112,7 @@ def m3u8open(url, cachePth, force):
                     print('already exists key.key')
                 return match.group(1) + 'key.key"'
 
-            content = re.sub(r'(#EXT-X-KEY.*URI=")(.+?\.key)"', keyMap, content)
+            content = re.sub(r'(#EXT-X-KEY.*URI=")(.+?)"', keyMap, content)
 
             # Find and replace ts
             chkTslsBsn = []
