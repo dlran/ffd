@@ -6,10 +6,10 @@ from .__init__ import download, hls
 from .__version__ import __version__
 
 def main():
-    parser = argparse.ArgumentParser(description = 'oo', usage=".py [options...] [args] url")
-    parser.add_argument('url', type=str, help="file url")
+    parser = argparse.ArgumentParser(description = 'hls segment downloader', usage="ffd [options...] [args] url")
+    parser.add_argument('url', type=str, help="file/hls url")
     parser.add_argument('-t', '--threads', type=int, help='max workers threads')
-    parser.add_argument('-d', '--dest', type=str, help='output cache destination')
+    parser.add_argument('-d', '--dest', type=str, help='output destination')
     parser.add_argument('-o', '--output', type=str, help='output file name')
     parser.add_argument('-v', '--version', action='version', version=__version__)
     parser.add_argument('-f', '--force', action='store_true', help="force override")
