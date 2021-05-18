@@ -24,3 +24,7 @@ optional arguments:
   -f, --force           force override
 
 ```
+
+```
+ffd "https://devstreaming-cdn.apple.com/videos/wwdc/2019/502gzyuhh8p2r8g8/502/hls_vod_mvp.m3u8"
+```
