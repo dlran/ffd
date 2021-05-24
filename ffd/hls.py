@@ -24,7 +24,7 @@ def getTsBsn(url):
         _p = urlparse(url).path.rsplit('/', 2)
         return _p[-2] + '_' + _p[-1]
     elif len(urlbs) > 100:
-        return ''.join(random.sample(string.ascii_letters + string.digits, 8))
+        return os.path.basename(urlparse(url).path)[-8:]
     else:
         return urlbs
 
