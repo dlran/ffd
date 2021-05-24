@@ -12,6 +12,7 @@ from urllib import request
 import ssl
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import string
 
 
 def getTsBsn(url):
@@ -22,6 +23,8 @@ def getTsBsn(url):
     if len(urlbs) == 1:
         _p = urlparse(url).path.rsplit('/', 2)
         return _p[-2] + '_' + _p[-1]
+    elif len(urlbs) > 100:
+        return ''.join(random.sample(string.ascii_letters + string.digits, 8))
     else:
         return urlbs
 
