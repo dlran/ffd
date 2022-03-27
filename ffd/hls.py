@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import string
 
 
-def getTsBsn(url):
+def getTsBsn(url, index):
     '''
     If ts basename length == 1 and all are the same, splice the previous dir
     '''
@@ -23,7 +23,9 @@ def getTsBsn(url):
     if len(urlbs) == 1:
         _p = urlparse(url).path.rsplit('/', 2)
         return _p[-2] + '_' + _p[-1]
-    elif len(urlbs) > 100:
+    elif re.search(r'%', urlbs):
+        return str(index) + '.ts'
+    elif len(urlbs) > 30:
         return os.path.basename(urlparse(url).path)[-8:]
     else:
         return urlbs
@@ -122,7 +124,7 @@ def m3u8open(url, cachePth, force):
             tsls = []
             def tsMap(match):
                 _path = match.group(3)
-                _bsname = getTsBsn(_path)
+                _bsname = getTsBsn(_path, len(chkTslsBsn))
                 # Already exists same basename
                 if _bsname in chkTslsBsn:
                     _bsname = str(len(chkTslsBsn)) + '.ts'
