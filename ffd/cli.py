@@ -20,7 +20,7 @@ def main():
         sys.exit(1)
 
     if os.path.splitext(urlparse(args.url).path)[-1] == '.m3u8':
-        hls(url=args.url, dest=args.dest, threads=args.threads, force=args.force)
+        hls(options=args.url, dest=args.dest, threads=args.threads, force=args.force)
     else:
         download(url=args.url, threads=args.threads, output=args.output, dest=args.dest, force=args.force)
 

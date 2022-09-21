@@ -30,14 +30,14 @@ def getTsBsn(url, index):
     else:
         return urlbs
 
-def downTs(segment, outDir):
+def downTs(segment, outDir, header={}):
     filePth = os.path.join(outDir, segment['bsn'])
 
     if os.path.exists(filePth) and os.path.getsize(filePth) > 0:
         print('already exists %s' % segment['bsn'])
     else:
         try:
-            tsBinary = request.urlopen(__request(segment['url']), timeout=5)
+            tsBinary = request.urlopen(__request(segment['url'], header=header), timeout=5)
             with open(filePth, 'wb') as f:
                 f.write(tsBinary.read())
                 print('downloaded %s' % segment['url'])
@@ -48,7 +48,7 @@ def downTs(segment, outDir):
             elif isinstance(e, IOError):
                 print('IO Error', end=' ')
             print(e)
-            return downTs(segment, outDir)
+            return downTs(segment, outDir, header)
 
     return True
 
@@ -63,8 +63,8 @@ def __request(url, method='GET', header={}):
             **header},
         method = method)
 
-def m3u8open(url, cachePth, force):
-    def loadM3U8(url, force=False, isStmInf=True):
+def m3u8open(url, header, cachePth, force):
+    def loadM3U8(url, header={}, force=False, isStmInf=True):
         print('opening ' + url)
         stmInfPath = os.path.join(cachePth, 'index.stream.m3u8')
         orgInfPath = os.path.join(cachePth, 'index.original.m3u8')
@@ -84,7 +84,7 @@ def m3u8open(url, cachePth, force):
             print('already exists index.original.m3u8')
         else:
             infIsExists = False
-            r = request.urlopen(__request(url), timeout=5)
+            r = request.urlopen(__request(url, header=header), timeout=5)
             content = r.read().decode('UTF-8')
             print('downloaded ' + url)
         streaminf = re.findall(r'#EXT-X-STREAM-INF:.+\n(.+?)\n?$', content)
@@ -102,14 +102,14 @@ def m3u8open(url, cachePth, force):
             # replace backslash in path
             stream_path = streaminf[-1].replace('\\', '/')
             inf_url = request.urljoin(url, stream_path)
-            return loadM3U8(inf_url, force, False)
+            return loadM3U8(inf_url, header, force, False)
         else:
             # Find and replace key
             def keyMap(match):
                 keyPath = os.path.join(cachePth, 'key.key')
                 keyUrl = request.urljoin(url, match.group(2))
                 if not os.path.exists(keyPath) or os.path.getsize(keyPath) == 0:
-                    keyres = request.urlopen(__request(keyUrl), timeout=5)
+                    keyres = request.urlopen(__request(keyUrl, header=header), timeout=5)
                     with open(keyPath, 'wb') as f:
                         f.write(keyres.read())
                     print('downloaded ' + keyUrl)
@@ -141,20 +141,26 @@ def m3u8open(url, cachePth, force):
             else:
                 return tsls
 
-    return loadM3U8(url, force)
+    return loadM3U8(url, header, force)
 
-def hlscache(url, dest=None, threads=None, force=False, inf_only=False, pack=False):
+def hlscache(options, dest=None, threads=None, force=False, inf_only=False, pack=False):
     g_spent_start = time.time()
     status = 1
     threads = threads or multiprocessing.cpu_count() * 5
     cachePth = (dest and os.path.abspath(dest)) or os.path.join(os.getcwd(), 'cache')
     ssl._create_default_https_context = ssl._create_unverified_context
-    segmentList = m3u8open(url, cachePth, force)
+    url = options
+    header = {}
+    if isinstance(options, dict):
+        url = options['url']
+        header = options.get('header', {})
+        header.pop('url', None)
+    segmentList = m3u8open(url, header, cachePth, force)
     if inf_only:
         print('%s Index file saved' % cachePth)
         return
     with ThreadPoolExecutor(threads) as executor:
-        tasks = [executor.submit(downTs, p, cachePth) for p in segmentList]
+        tasks = [executor.submit(downTs, p, cachePth, header) for p in segmentList]
         for future in as_completed(tasks):
             try:
                 future.result()
