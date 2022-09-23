@@ -143,13 +143,13 @@ def m3u8open(url, header, cachePth, force):
 
     return loadM3U8(url, header, force)
 
-def hlscache(options, dest=None, threads=None, force=False, inf_only=False, pack=False):
+def hlscache(options=None, url='', dest=None, threads=None, force=False, inf_only=False, pack=False):
     g_spent_start = time.time()
     status = 1
     threads = threads or multiprocessing.cpu_count() * 5
     cachePth = (dest and os.path.abspath(dest)) or os.path.join(os.getcwd(), 'cache')
     ssl._create_default_https_context = ssl._create_unverified_context
-    url = options
+    url = options or url
     header = {}
     if isinstance(options, dict):
         url = options['url']
