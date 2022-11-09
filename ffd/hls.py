@@ -13,7 +13,12 @@ import ssl
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import string
+import logging
 
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.DEBUG)
 
 def getTsBsn(url, index):
     '''
@@ -34,20 +39,20 @@ def downTs(segment, outDir, header={}):
     filePth = os.path.join(outDir, segment['bsn'])
 
     if os.path.exists(filePth) and os.path.getsize(filePth) > 0:
-        print('already exists %s' % segment['bsn'])
+        logger.info('already exists %s' % segment['bsn'])
     else:
         try:
             tsBinary = request.urlopen(__request(segment['url'], header=header), timeout=5)
             with open(filePth, 'wb') as f:
                 f.write(tsBinary.read())
-                print('downloaded %s' % segment['url'])
+                logger.info('downloaded %s' % segment['url'])
         except Exception as e:
-            print('retry ' + segment['url'])
+            logger.info('retry ' + segment['url'])
             if isinstance(e, socket.timeout):
-                print('scoket timeout', end=' ')
+                logger.info('scoket timeout')
             elif isinstance(e, IOError):
-                print('IO Error', end=' ')
-            print(e)
+                logger.info('IO Error')
+            logger.exception(e)
             return downTs(segment, outDir, header)
 
     return True
@@ -65,28 +70,29 @@ def __request(url, method='GET', header={}):
 
 def m3u8open(url, header, cachePth, force):
     def loadM3U8(url, header={}, force=False, isStmInf=True):
-        print('opening ' + url)
+        # logger.info('opening ' + url)
+        logger.info('opening ' + url)
         stmInfPath = os.path.join(cachePth, 'index.stream.m3u8')
         orgInfPath = os.path.join(cachePth, 'index.original.m3u8')
         if not force and isStmInf and os.path.exists(stmInfPath) and os.path.getsize(stmInfPath) > 0:
             infIsExists = True
             with open(stmInfPath, 'r') as f:
                 content = f.read()
-            print('already exists index.stream.m3u8')
+            logger.info('already exists index.stream.m3u8')
         elif not force and os.path.exists(orgInfPath) and os.path.getsize(orgInfPath) > 0:
             infIsExists = True
             if isStmInf:
                 # if doesn't stream file but exists original.m3u8
-                print('not exists index.stream.m3u8')
+                logger.info('not exists index.stream.m3u8')
             isStmInf = False
             with open(orgInfPath, 'r') as f:
                 content = f.read()
-            print('already exists index.original.m3u8')
+            logger.info('already exists index.original.m3u8')
         else:
             infIsExists = False
             r = request.urlopen(__request(url, header=header), timeout=5)
             content = r.read().decode('UTF-8')
-            print('downloaded ' + url)
+            logger.info('downloaded ' + url)
         streaminf = re.findall(r'#EXT-X-STREAM-INF:.+\n(.+?)\n?$', content)
         # Correct status if not stream inf
         isStmInf = bool(streaminf)
@@ -112,9 +118,9 @@ def m3u8open(url, header, cachePth, force):
                     keyres = request.urlopen(__request(keyUrl, header=header), timeout=5)
                     with open(keyPath, 'wb') as f:
                         f.write(keyres.read())
-                    print('downloaded ' + keyUrl)
+                    logger.info('downloaded ' + keyUrl)
                 else:
-                    print('already exists key.key')
+                    logger.info('already exists key.key')
                 return match.group(1) + 'key.key"'
 
             content = re.sub(r'(#EXT-X-KEY.*URI=")(.+?)"', keyMap, content)
@@ -135,7 +141,7 @@ def m3u8open(url, header, cachePth, force):
             with open(os.path.join(cachePth, 'index.m3u8'), 'w') as f:
                 f.write(content)
             if not tsls:
-                print('ts not found')
+                logger.info('ts not found')
                 sys.exit(1)
                 return []
             else:
@@ -143,7 +149,10 @@ def m3u8open(url, header, cachePth, force):
 
     return loadM3U8(url, header, force)
 
-def hlscache(options=None, url='', dest=None, threads=None, force=False, inf_only=False, pack=False):
+def hlscache(options=None, url='', dest=None, threads=None, force=False, inf_only=False, pack=False, logger_name=''):
+    if logger_name:
+        global logger
+        logger = logging.getLogger(logger_name)
     g_spent_start = time.time()
     status = 1
     threads = threads or multiprocessing.cpu_count() * 5
@@ -157,7 +166,7 @@ def hlscache(options=None, url='', dest=None, threads=None, force=False, inf_onl
         header.pop('url', None)
     segmentList = m3u8open(url, header, cachePth, force)
     if inf_only:
-        print('%s Index file saved' % cachePth)
+        logger.info('%s Index file saved' % cachePth)
         return
     with ThreadPoolExecutor(threads) as executor:
         tasks = [executor.submit(downTs, p, cachePth, header) for p in segmentList]
@@ -168,10 +177,10 @@ def hlscache(options=None, url='', dest=None, threads=None, force=False, inf_onl
                 status = 2
 
     m, s = divmod(int(time.time() - g_spent_start), 60)
-    print('(%sm%ss) %s Saved' % (m, s, cachePth))
+    logger.info('(%sm%ss) %s Saved' % (m, s, cachePth))
 
     if pack and status == 1:
-        print('packing')
+        logger.info('packing')
         if isinstance(pack, str) and os.path.splitext(pack)[-1] == '.mp4':
             packup(cachePth, output=pack)
         packup(cachePth)
