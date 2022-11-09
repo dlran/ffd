@@ -35,14 +35,14 @@ def getTsBsn(url, index):
     else:
         return urlbs
 
-def downTs(segment, outDir, header={}):
+def downTs(segment, outDir, header={}, timeout=5):
     filePth = os.path.join(outDir, segment['bsn'])
 
     if os.path.exists(filePth) and os.path.getsize(filePth) > 0:
         logger.info('already exists %s' % segment['bsn'])
     else:
         try:
-            tsBinary = request.urlopen(__request(segment['url'], header=header), timeout=5)
+            tsBinary = request.urlopen(__request(segment['url'], header=header), timeout=timeout)
             with open(filePth, 'wb') as f:
                 f.write(tsBinary.read())
                 logger.info('downloaded %s' % segment['url'])
@@ -52,8 +52,8 @@ def downTs(segment, outDir, header={}):
                 logger.info('scoket timeout')
             elif isinstance(e, IOError):
                 logger.info('IO Error')
-            logger.exception(e)
-            return downTs(segment, outDir, header)
+            logger.info(e)
+            return downTs(segment, outDir, header, timeout)
 
     return True
 
@@ -149,7 +149,8 @@ def m3u8open(url, header, cachePth, force):
 
     return loadM3U8(url, header, force)
 
-def hlscache(options=None, url='', dest=None, threads=None, force=False, inf_only=False, pack=False, logger_name=''):
+def hlscache(options=None, url='', dest=None, threads=None, force=False, inf_only=False, pack=False, logger_name='',
+    timeout=5):
     if logger_name:
         global logger
         logger = logging.getLogger(logger_name)
@@ -169,7 +170,7 @@ def hlscache(options=None, url='', dest=None, threads=None, force=False, inf_onl
         logger.info('%s Index file saved' % cachePth)
         return
     with ThreadPoolExecutor(threads) as executor:
-        tasks = [executor.submit(downTs, p, cachePth, header) for p in segmentList]
+        tasks = [executor.submit(downTs, p, cachePth, header, timeout) for p in segmentList]
         for future in as_completed(tasks):
             try:
                 future.result()
