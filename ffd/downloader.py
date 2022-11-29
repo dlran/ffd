@@ -67,7 +67,11 @@ class Downloader:
         except Exception:
             print('[warning] Not allow method HEAD, try get')
             with request.urlopen(self.request(url=self.url, method='GET', header={'Range': 'bytes=0-'}), timeout=5) as r:
-                self.total = int(r.getheader(name='Content-Length'))
+                if r.getheader(name='Content-Length'):
+                    self.total = int(r.getheader(name='Content-Length'))
+                else:
+                    self.total = self.blocksize
+                    print('[warning] Not found Content-length. Set default blocksize value')
         print('Length: %s (%s)' % (self.total, humanSize(self.total)))
 
     def request(self, url, method, header={}):
