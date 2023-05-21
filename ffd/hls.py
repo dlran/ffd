@@ -129,7 +129,7 @@ def m3u8open(url, header, cachePth, force):
             chkTslsBsn = []
             tsls = []
             def tsMap(match):
-                _path = match.group(3)
+                _path = match.group(3).strip()
                 _bsname = getTsBsn(_path, len(chkTslsBsn))
                 # Already exists same basename
                 if _bsname in chkTslsBsn:
