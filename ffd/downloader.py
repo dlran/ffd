@@ -63,15 +63,21 @@ class Downloader:
     def headCtnLen(self):
         try:
             with request.urlopen(self.request(url=self.url, method='HEAD'), timeout=5) as r:
+                ct = r.getheader(name='Content-Type')
+                if 'application/json' in ct:
+                    raise ValueError('Error header content-type: ' + ct + '. Download break.')
                 self.total = int(r.getheader(name='Content-Length'))
-        except Exception:
-            print('[warning] Not allow method HEAD, try get')
-            with request.urlopen(self.request(url=self.url, method='GET', header={'Range': 'bytes=0-'}), timeout=5) as r:
-                if r.getheader(name='Content-Length'):
-                    self.total = int(r.getheader(name='Content-Length'))
-                else:
-                    self.total = self.blocksize
-                    print('[warning] Not found Content-length. Set default blocksize value')
+        except Exception as e:
+            if isinstance(e, ValueError) and 'break' in str(e):
+                raise e
+            else:
+                print('[warning] Not allow method HEAD, try get')
+                with request.urlopen(self.request(url=self.url, method='GET', header={'Range': 'bytes=0-'}), timeout=5) as r:
+                    if r.getheader(name='Content-Length'):
+                        self.total = int(r.getheader(name='Content-Length'))
+                    else:
+                        self.total = self.blocksize
+                        print('[warning] Not found Content-length. Set default blocksize value')
         print('Length: %s (%s)' % (self.total, humanSize(self.total)))
 
     def request(self, url, method, header={}):
