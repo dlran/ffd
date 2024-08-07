@@ -51,11 +51,11 @@ class Downloader:
         self.threads = threads or multiprocessing.cpu_count() * 5
         self.total = 0
         self.force = force
-        self.run()
-        # self.tellSet = set()
         if logger_name:
             global logger
             logger = logging.getLogger(logger_name)
+        self.run()
+        # self.tellSet = set()
 
     def checkDestExit(self, dest):
         if not os.path.exists(dest):
