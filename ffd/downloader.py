@@ -6,7 +6,12 @@ import math
 import time
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import logging
 
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.DEBUG)
 
 def humanSize(num, suffix='B'):
     for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
@@ -30,13 +35,13 @@ class Progressbar:
         bar = ("=" * finishWidth) + (" " * (self.width - finishWidth))
         speed = blocksize / spent_time
         # self.spinner[finishWidth%4]
-        print(' ' * self.terminalWidth, end='\r')
-        print("[%.2f%%][%s] %s %s/s" % ((percent * 100), bar, self.finish, humanSize(speed)), end='\r')
+        logger.info(' ' * self.terminalWidth)
+        logger.info("[%.2f%%][%s] %s %s/s" % ((percent * 100), bar, self.finish, humanSize(speed)))
         # sys.stdout.flush()
 
 
 class Downloader:
-    def __init__(self, url, threads=None, output=None, dest=None, force=False):
+    def __init__(self, url, threads=None, output=None, dest=None, force=False, logger_name=''):
         self.g_spent_start = time.time()
         self.url = url
         self.blocksize = 524288
@@ -48,15 +53,18 @@ class Downloader:
         self.force = force
         self.run()
         # self.tellSet = set()
+        if logger_name:
+            global logger
+            logger = logging.getLogger(logger_name)
 
     def checkDestExit(self, dest):
         if not os.path.exists(dest):
             os.mkdir(dest)
-            print('created ' + dest)
+            logger.info('created ' + dest)
 
     def checkFileExist(self, filePth):
         if os.path.exists(filePth) and os.path.getsize(filePth) > 0 and not self.force:
-            print(filePth + ' already exists')
+            logger.info(filePth + ' already exists')
             return True
         return False
 
@@ -71,14 +79,14 @@ class Downloader:
             if isinstance(e, ValueError) and 'break' in str(e):
                 raise e
             else:
-                print('[warning] Not allow method HEAD, try get')
+                logger.info('[warning] Not allow method HEAD, try get')
                 with request.urlopen(self.request(url=self.url, method='GET', header={'Range': 'bytes=0-'}), timeout=5) as r:
                     if r.getheader(name='Content-Length'):
                         self.total = int(r.getheader(name='Content-Length'))
                     else:
                         self.total = self.blocksize
-                        print('[warning] Not found Content-length. Set default blocksize value')
-        print('Length: %s (%s)' % (self.total, humanSize(self.total)))
+                        logger.info('[warning] Not found Content-length. Set default blocksize value')
+        logger.info('Length: %s (%s)' % (self.total, humanSize(self.total)))
 
     def request(self, url, method, header={}):
         return request.Request(
@@ -108,13 +116,13 @@ class Downloader:
                 return start, res.read(), spent_time
         except Exception as e:
             # os.get_terminal_size().columns
-            print(' ' * 80, end='\r')
+            logger.error(' ' * 80)
             if isinstance(e, ssl.SSLError):
-                print('SSL Error', end=' ')
+                loggger.error('SSL Error')
             elif isinstance(e, IOError):
-                print('IO Error', end=' ')
-            print(e)
-            print('Retry block %s-%s' % (start, end))
+                logger.error('IO Error')
+            logger.error(e)
+            logger.error('Retry block %s-%s' % (start, end))
             return self.download(start, end)
 
     def run(self):
@@ -139,11 +147,10 @@ class Downloader:
 
                     pb.update(blocksize=self.blocksize, spent_time=spent_time)
                 except Exception as e:
-                    print(e)
+                    logger.exception(e)
             m, s = divmod(int(time.time() - self.g_spent_start), 60)
-            print()
             # print('get block %s' % len(self.tellSet))
-            print('(%sm%ss) %s Saved' % (m, s, self.filePath))
+            logger.info('(%sm%ss) %s Saved' % (m, s, self.filePath))
 
         self.fs.close()
 
