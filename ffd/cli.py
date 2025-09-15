@@ -12,6 +12,8 @@ def main():
     parser.add_argument('-d', '--dest', type=str, help='output destination')
     parser.add_argument('-o', '--output', type=str, help='output file name')
     parser.add_argument('-v', '--version', action='version', version=__version__)
+    parser.add_argument('--rmad', action='store_true', help="remove advertising segment")
+    parser.add_argument('--pack', action='store_true', help="concat hls segment")
     parser.add_argument('-f', '--force', action='store_true', help="force override")
     argv = sys.argv
     args = parser.parse_args()
@@ -20,7 +22,7 @@ def main():
         sys.exit(1)
 
     if os.path.splitext(urlparse(args.url).path)[-1] == '.m3u8':
-        hls(options=args.url, dest=args.dest, threads=args.threads, force=args.force)
+        hls(options=args.url, dest=args.dest, threads=args.threads, force=args.force, output=args.output, rm_ad=args.rmad, pack=args.pack)
     else:
         download(url=args.url, threads=args.threads, output=args.output, dest=args.dest, force=args.force)
 

@@ -14,6 +14,7 @@ import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import string
 import logging
+from ffd.rmad import rmAdSegment
 
 
 logger = logging.getLogger(__name__)
@@ -39,13 +40,13 @@ def downTs(segment, outDir, header={}, timeout=5):
     filePth = os.path.join(outDir, segment['bsn'])
 
     if os.path.exists(filePth) and os.path.getsize(filePth) > 0:
-        logger.info('already exists %s' % segment['bsn'])
+        logger.info('Already exists %s' % segment['bsn'])
     else:
         try:
             tsBinary = request.urlopen(__request(segment['url'], header=header), timeout=timeout)
             with open(filePth, 'wb') as f:
                 f.write(tsBinary.read())
-                logger.info('downloaded %s' % segment['url'])
+                logger.info('Downloaded %s' % segment['url'])
         except Exception as e:
             logger.info('retry ' + segment['url'])
             if isinstance(e, socket.timeout):
@@ -71,7 +72,7 @@ def __request(url, method='GET', header={}):
 def m3u8open(url, header, cachePth, force):
     def loadM3U8(url, header={}, force=False, isStmInf=True):
         # logger.info('opening ' + url)
-        logger.info('opening ' + url)
+        logger.info('Opening ' + url)
         stmInfPath = os.path.join(cachePth, 'index.stream.m3u8')
         orgInfPath = os.path.join(cachePth, 'index.original.m3u8')
         if not force and isStmInf and os.path.exists(stmInfPath) and os.path.getsize(stmInfPath) > 0:
@@ -92,7 +93,7 @@ def m3u8open(url, header, cachePth, force):
             infIsExists = False
             r = request.urlopen(__request(url, header=header), timeout=5)
             content = r.read().decode('UTF-8')
-            logger.info('downloaded ' + url)
+            logger.info('Downloaded ' + url)
         streaminf = re.findall(r'#EXT-X-STREAM-INF:.+\n(.+?)\n?$', content)
         # Correct status if not stream inf
         isStmInf = bool(streaminf)
@@ -118,7 +119,7 @@ def m3u8open(url, header, cachePth, force):
                     keyres = request.urlopen(__request(keyUrl, header=header), timeout=5)
                     with open(keyPath, 'wb') as f:
                         f.write(keyres.read())
-                    logger.info('downloaded ' + keyUrl)
+                    logger.info('Downloaded ' + keyUrl)
                 else:
                     logger.info('already exists key.key')
                 return match.group(1) + 'key.key"'
@@ -149,8 +150,8 @@ def m3u8open(url, header, cachePth, force):
 
     return loadM3U8(url, header, force)
 
-def hlscache(options=None, url='', dest=None, threads=None, force=False, inf_only=False, pack=False, logger_name='',
-    timeout=5):
+def hlscache(options=None, url='', dest=None, output=None, threads=None, force=False, inf_only=False, pack=False, logger_name='',
+    timeout=5, rm_ad=False):
     if logger_name:
         global logger
         logger = logging.getLogger(logger_name)
@@ -180,18 +181,37 @@ def hlscache(options=None, url='', dest=None, threads=None, force=False, inf_onl
     m, s = divmod(int(time.time() - g_spent_start), 60)
     logger.info('(%sm%ss) %s Saved' % (m, s, cachePth))
 
+    if rm_ad:
+        ad_ls = rmAdSegment(dest=cachePth, logger=logger)
+
     if pack and status == 1:
-        logger.info('packing')
-        if isinstance(pack, str) and os.path.splitext(pack)[-1] == '.mp4':
-            packup(cachePth, output=pack)
-        packup(cachePth)
+        output = output or "index.mp4" 
+        # if isinstance(pack, str) and os.path.splitext(pack)[-1] == '.mp4':
+        packup(dest=cachePth, output=output)
+        rmHLSFile(dest=cachePth, segmentList=segmentList, logger=logger)
+        m, s = divmod(int(time.time() - g_spent_start), 60)
+        logger.info('(%sm%ss) %s Saved' % (m, s, os.path.join(cachePth, output)))
+
+    if rm_ad:
+        logger.info(f'found ad {ad_ls}')
 
 
-def packup(cachePth, output='index.mp4'):
+def packup(dest, output):
     p = subprocess.Popen(\
         u'ffmpeg -allowed_extensions ALL -i "{segmentPth}" -c copy -y "{outPth}"'\
-        .format(segmentPth=os.path.join(cachePth, 'index.m3u8'),
-            outPth=os.path.join(cachePth, output)),
+        .format(segmentPth=os.path.join(dest, 'index.m3u8'),
+            outPth=os.path.join(dest, output)),
             shell=True)
     p.wait()
+
+def rmHLSFile(dest, segmentList, logger):
+    for segment in segmentList:
+        filePath = os.path.join(dest, segment['bsn'])
+        os.remove(filePath)
+        logger.info(f"Deleted {filePath}")
+    for file in os.listdir(dest):
+        if file.endswith(".m3u8"):
+            filePath = os.path.join(dest, file)
+            os.remove(filePath)
+            logger.info(f"Deleted {filePath}")
 
