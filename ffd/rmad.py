@@ -17,7 +17,8 @@ def check_m3u8_file(index_path, ad_path, logger):
 
     key_match = re.findall(r'#EXT-X-KEY.*URI="(.+?)"', content)
     if key_match:
-        raise RuntimeError('Exist key encryption. cannot extract ts info')
+        logger.info('Exist key encryption. cannot extract ts info')
+        return unique_infos
 
     base_info = set()
     failed_count = []
